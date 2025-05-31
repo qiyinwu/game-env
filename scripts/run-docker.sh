@@ -18,15 +18,16 @@ setup_logs_directory() {
         if [ -d "$LOGS_DIR" ]; then
             # Check if we can write to the directory
             if ! [ -w "$LOGS_DIR" ]; then
-                echo "⚠️  Permission issue detected. Fixing logs directory permissions..."
+                echo "⚠️  Permission issue detected. Attempting to fix without data loss..."
                 echo "💡 This may require sudo access..."
                 
-                # Try to fix permissions
-                if sudo rm -rf "$LOGS_DIR" && mkdir -p "$LOGS_DIR" && sudo chown 1000:1000 "$LOGS_DIR"; then
-                    echo "✅ Permissions fixed successfully!"
+                # Try to fix permissions without deleting existing data
+                if sudo chown -R 1000:1000 "$LOGS_DIR" && sudo chmod -R 755 "$LOGS_DIR"; then
+                    echo "✅ Permissions fixed successfully! Existing logs preserved."
                 else
-                    echo "❌ Failed to fix permissions. Please run manually:"
-                    echo "   sudo rm -rf logs && mkdir logs && sudo chown 1000:1000 logs"
+                    echo "❌ Failed to fix permissions preserving data. You can:"
+                    echo "   1. Run: sudo chown -R 1000:1000 logs && sudo chmod -R 755 logs"
+                    echo "   2. Or backup logs and run: ./scripts/fix-docker-permissions.sh"
                     exit 1
                 fi
             else
@@ -38,6 +39,7 @@ setup_logs_directory() {
             if command -v sudo >/dev/null 2>&1; then
                 sudo chown 1000:1000 "$LOGS_DIR" 2>/dev/null || true
             fi
+            echo "✅ Logs directory created"
         fi
     else
         # On macOS/Windows, just create the directory

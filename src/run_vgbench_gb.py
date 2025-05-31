@@ -43,34 +43,48 @@ async def run_gba_emulator(args):
     render = not args.headless
     game = GBAInterface(render=render)
     
-    # Get API key from args or environment
-    api_key = args.api_key
-
-    # Set model based on API if not specified
-    model = args.model
-    
     # Initialize LLM interface based on chosen API and mode
     gba_agent = None
     
     if args.fake_actions:
-        # Don't initialize any API if using fake actions
+        # Use GameBoyVGAgent with fake mode instead of separate FakeGameBoyAgent
         print("Using fake random actions (no LLM API calls)")
-
-    # Initialize the realtime GBAAgent
-    gba_agent = GameBoyVGAgent(
-        model=model,
-        api_key=api_key,
-        game=args.game,
-        temperature=args.temperature,
-        max_tokens=args.max_tokens,
-        max_history_tokens=args.history_tokens,
-        context_window=args.max_context_size,
-        realtime=not args.lite,
-        enable_ui=args.enable_ui,
-        task_prompt=args.task_prompt,
-        api_base=args.api_base,
-    )
-    print(f"Using VGagent on VideoGameBench with model: {model}")
+        gba_agent = GameBoyVGAgent(
+            model="fake-model",  # Placeholder model name for fake mode
+            api_key="fake-key",  # Placeholder API key for fake mode
+            game=args.game,
+            temperature=args.temperature,
+            max_tokens=args.max_tokens,
+            max_history_tokens=args.history_tokens,
+            context_window=args.max_context_size,
+            realtime=not args.lite,
+            enable_ui=args.enable_ui,
+            task_prompt=args.task_prompt,
+            api_base=args.api_base,
+            fake_mode=True  # Enable fake mode
+        )
+    else:
+        # Get API key from args or environment
+        api_key = args.api_key
+        # Set model based on API if not specified
+        model = args.model
+        
+        # Initialize the realtime GBAAgent
+        gba_agent = GameBoyVGAgent(
+            model=model,
+            api_key=api_key,
+            game=args.game,
+            temperature=args.temperature,
+            max_tokens=args.max_tokens,
+            max_history_tokens=args.history_tokens,
+            context_window=args.max_context_size,
+            realtime=not args.lite,
+            enable_ui=args.enable_ui,
+            task_prompt=args.task_prompt,
+            api_base=args.api_base,
+            fake_mode=False  # Disable fake mode for real LLM calls
+        )
+        print(f"Using VGagent on VideoGameBench with model: {model}")
     
     # Load the game
     print(f"Loading ROM: {rom_path}")
@@ -80,7 +94,7 @@ async def run_gba_emulator(args):
         return
     
     print("Game loaded successfully!")
-    if gba_agent:
+    if hasattr(gba_agent, 'log_dir'):
         print(f"Logging to: {gba_agent.log_dir}")
     
     # Create evaluator

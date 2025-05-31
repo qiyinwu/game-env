@@ -57,11 +57,13 @@ class VideoGameBenchAgent:
                  context_window: int = 10, 
                  log_dir: Optional[Path] = None,
                  enable_ui: bool = False,
-                 api_base: Optional[str] = None):
+                 api_base: Optional[str] = None,
+                 fake_mode: bool = False):
         # Set up logging directory
         if log_dir is None:
             model_name = model.replace("/", "-").replace(".", "-")
-            self.log_dir = Path("logs") / f"{game.lower()}" / model_name / datetime.now().strftime("%Y%m%d_%H%M%S")
+            agent_type = "fake_agent" if fake_mode else model_name
+            self.log_dir = Path("logs") / f"{game.lower()}" / agent_type / datetime.now().strftime("%Y%m%d_%H%M%S")
             self.log_dir.mkdir(parents=True, exist_ok=True)
         else:
             self.log_dir = log_dir
@@ -77,7 +79,8 @@ class VideoGameBenchAgent:
             temperature=temperature,
             max_tokens=max_tokens,
             log_dir=self.log_dir / "llm",
-            api_base=api_base
+            api_base=api_base,
+            fake_mode=fake_mode
         )
 
         # Common attributes
@@ -255,7 +258,8 @@ class GameBoyVGAgent(VideoGameBenchAgent):
         log_dir: Optional[Path] = None,
         realtime: bool = False,
         enable_ui: bool = False,
-        api_base: Optional[str] = None
+        api_base: Optional[str] = None,
+        fake_mode: bool = False
     ):
         """
         Initialize the GBA agent.
@@ -269,7 +273,15 @@ class GameBoyVGAgent(VideoGameBenchAgent):
             max_tokens: The maximum number of tokens to generate
             max_history_tokens: The maximum number of tokens to keep in history
             log_dir: Optional custom log directory path
+            fake_mode: If True, generate fake responses instead of calling APIs
         """
+        # Set up logging directory with appropriate agent type
+        if log_dir is None and fake_mode:
+            model_name = "fake_agent"
+            self.log_dir = Path("logs") / f"{game.lower()}" / model_name / datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.log_dir.mkdir(parents=True, exist_ok=True)
+            log_dir = self.log_dir
+            
         super().__init__(
             model=model,
             api_key=api_key,
@@ -282,9 +294,11 @@ class GameBoyVGAgent(VideoGameBenchAgent):
             log_dir=log_dir,
             enable_ui=enable_ui,
             task_prompt=task_prompt,
-            api_base=api_base
+            api_base=api_base,
+            fake_mode=fake_mode
         )
         
+        self.fake_mode = fake_mode
         self.realtime = realtime
         self.system_instruction_prompt = SYSTEM_PROMPTS["gba_realtime"] if realtime else SYSTEM_PROMPTS["gba"]
         self.system_prompt["content"] = f"{self.system_instruction_prompt}\n\n{self.task_prompt}"
@@ -303,7 +317,7 @@ class GameBoyVGAgent(VideoGameBenchAgent):
             self.monitor_dir = self.log_dir / "monitor"
             self.monitor_dir.mkdir(exist_ok=True)
 
-        logger.info(f"{self.__class__.__name__} initialized. Logging to: {self.log_dir}")
+        logger.info(f"{self.__class__.__name__} initialized. Logging to: {self.log_dir}, fake_mode: {fake_mode}")
 
     
     def _save_image(self, image: Image.Image) -> Path:

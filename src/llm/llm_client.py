@@ -3,11 +3,13 @@ import os
 import time
 import json
 import logging
+import random
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Any, Literal
 import litellm
 import re
+import asyncio
 
 # Setup logging
 logging.basicConfig(
@@ -30,7 +32,8 @@ class LLMClient:
         max_tokens: int = 1024,
         max_cost: float = 30.0,  # Maximum cost in USD
         log_dir: Optional[Path] = None,
-        api_base: Optional[str] = None # For Ollama
+        api_base: Optional[str] = None, # For Ollama
+        fake_mode: bool = False  # New parameter for fake mode
     ):
         """
         Initialize the LLM client.
@@ -43,6 +46,7 @@ class LLMClient:
             max_cost: The maximum cost in USD for the current session
             log_dir: Optional custom log directory path
             api_base: Optional API base URL for Ollama or other providers
+            fake_mode: If True, generate fake responses instead of calling APIs
         """
         self.model = model
         self.api_key = api_key
@@ -51,11 +55,13 @@ class LLMClient:
         self.max_cost = max_cost
         self.total_cost = 0.0
         self.api_base = api_base
+        self.fake_mode = fake_mode
         
         # Set up logging directory
         if log_dir is None:
             model_name = model.replace("/", "-").replace(".", "-")
-            self.log_dir = Path("logs") / "dos" / model_name / datetime.now().strftime("%Y%m%d_%H%M%S")
+            agent_type = "fake_agent" if fake_mode else model_name
+            self.log_dir = Path("logs") / "dos" / agent_type / datetime.now().strftime("%Y%m%d_%H%M%S")
         else:
             self.log_dir = log_dir
             
@@ -65,30 +71,33 @@ class LLMClient:
         self.file_logger = self._setup_file_logger()
         self.step_count = 0
         
-        # Set the API key based on the model
-        if "gpt" in model.lower() or "openai" in model.lower():
-            if api_key is not None and api_key != "":
-                os.environ["OPENAI_API_KEY"] = api_key
-            self.provider = "openai"
-        elif "claude" in model.lower() or "anthropic" in model.lower():
-            if api_key is not None and api_key != "":
-                os.environ["ANTHROPIC_API_KEY"] = api_key
-            # Ensure model has the correct format for LiteLLM
-            if not model.startswith("anthropic/"):
-                self.model = f"anthropic/{model}"
-            self.provider = "anthropic"
-        elif self.api_base and "ollama" in self.api_base:
-            # Configure for Ollama
-            self.provider = "ollama"
-            if not model.startswith("ollama/"):
-                self.model = f"ollama/{model}"
-            litellm.api_base = self.api_base
+        if not fake_mode:
+            # Set the API key based on the model
+            if "gpt" in model.lower() or "openai" in model.lower():
+                if api_key is not None and api_key != "":
+                    os.environ["OPENAI_API_KEY"] = api_key
+                self.provider = "openai"
+            elif "claude" in model.lower() or "anthropic" in model.lower():
+                if api_key is not None and api_key != "":
+                    os.environ["ANTHROPIC_API_KEY"] = api_key
+                # Ensure model has the correct format for LiteLLM
+                if not model.startswith("anthropic/"):
+                    self.model = f"anthropic/{model}"
+                self.provider = "anthropic"
+            elif self.api_base and "ollama" in self.api_base:
+                # Configure for Ollama
+                self.provider = "ollama"
+                if not model.startswith("ollama/"):
+                    self.model = f"ollama/{model}"
+                litellm.api_base = self.api_base
+            else:
+                # For other models, set a generic API key
+                litellm.api_key = api_key
+                self.provider = "other"
         else:
-            # For other models, set a generic API key
-            litellm.api_key = api_key
-            self.provider = "other"
+            self.provider = "fake"
             
-        self.file_logger.info(f"Initialized LLMClient with model: {self.model}, provider: {self.provider}")
+        self.file_logger.info(f"Initialized LLMClient with model: {self.model}, provider: {self.provider}, fake_mode: {fake_mode}")
         self.file_logger.info(f"Logging to: {self.log_dir}")
         logger.info(f"LLMClient logging to: {self.log_dir}")
         
@@ -128,6 +137,25 @@ class LLMClient:
     def get_total_cost(self) -> float:
         return self.total_cost
 
+    def _generate_fake_response(self) -> str:
+        """Generate a fake response for testing purposes."""
+        # Available Game Boy buttons
+        buttons = ["RIGHT", "LEFT", "UP", "DOWN", "A", "B", "START", "SELECT"]
+        
+        # 70% chance of pressing a button, 30% chance of no action
+        if random.random() < 0.7:
+            action = random.choice(buttons)
+            thought = f"I will press {action} to continue playing the game."
+        else:
+            action = "NONE"
+            thought = "I will wait and observe the current state."
+            
+        # Generate response in the expected format
+        fake_response = f"[Your thought]: {thought}\n[Your action]: {action}"
+        
+        self.file_logger.info(f"Generated fake response: {fake_response}")
+        return fake_response
+
     async def generate_response(
         self, 
         system_message: Dict[str, str],
@@ -146,6 +174,12 @@ class LLMClient:
         """
         self.step_count += 1
         self.file_logger.info(f"Step {self.step_count} - Generating response")
+
+        # If in fake mode, return fake response immediately
+        if self.fake_mode:
+            # Add some delay to simulate thinking time
+            await asyncio.sleep(0.1)
+            return self._generate_fake_response()
 
         
         # If image data is provided, save it and add it to the last user message

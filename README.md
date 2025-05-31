@@ -66,7 +66,7 @@ rm -rf temp_pokered
 If you don't want to build from source, you can download a pre-built ROM from the pokered releases:
 ```bash
 # Option 1: Use the automated download script (recommended)
-./download_roms.sh
+./scripts/download_roms.sh
 
 # Option 2: Manual download from official pret/pokered releases
 curl -L -o roms/pokemon_red.gb "https://github.com/pret/pokered/releases/download/symbols/pokered.gbc"
@@ -75,7 +75,7 @@ curl -L -o roms/pokemon_red.gb "https://github.com/pret/pokered/releases/downloa
 curl -L -o roms/pokemon_red.gb "https://github.com/x1qqDev/pokemon-red/raw/main/Pokemon.gb"
 ```
 
-**Note**: The automated script (`download_roms.sh`) is the easiest way to get started. It downloads the ROM, verifies the file size, and provides helpful feedback. All options provide legal, open-source Pokemon Red ROMs that work with the benchmark.
+**Note**: The automated script (`scripts/download_roms.sh`) is the easiest way to get started. It downloads the ROM, verifies the file size, and provides helpful feedback. All options provide legal, open-source Pokemon Red ROMs that work with the benchmark.
 
 #### Other Game Boy ROMs
 For other games listed in the benchmark, you'll need to:
@@ -276,7 +276,7 @@ VideoGameBench provides comprehensive Docker support with automatic log mounting
 docker build -t videogamebench .
 
 # Method 1: Use the convenient runner script (recommended)
-./run-docker.sh
+./scripts/run-docker.sh
 
 # Method 2: Manual Docker commands
 docker run --rm -it -v $(pwd)/logs:/app/logs videogamebench
@@ -284,23 +284,23 @@ docker run --rm -it -v $(pwd)/logs:/app/logs videogamebench
 
 ### Using the Docker Runner Script
 
-The `run-docker.sh` script automatically handles log mounting and provides easy parameter passing:
+The `scripts/run-docker.sh` script automatically handles log mounting and provides easy parameter passing:
 
 ```bash
 # Run with default settings (20 steps, fake actions, logs auto-mounted)
-./run-docker.sh
+./scripts/run-docker.sh
 
 # Run with custom parameters
-./run-docker.sh python main.py --game pokemon_red --fake-actions --max-steps 50
+./scripts/run-docker.sh python main.py --game pokemon_red --fake-actions --max-steps 50
 
 # Run with different game
-./run-docker.sh python main.py --game pokemon_crystal --fake-actions --lite
+./scripts/run-docker.sh python main.py --game pokemon_crystal --fake-actions --lite
 
 # Run interactive shell for debugging
-./run-docker.sh bash
+./scripts/run-docker.sh bash
 
 # Run with real LLM (requires API key in environment)
-./run-docker.sh python main.py --game pokemon_red --model gpt-4o --max-steps 10
+./scripts/run-docker.sh python main.py --game pokemon_red --model gpt-4o --max-steps 10
 ```
 
 ### Manual Docker Commands
@@ -331,6 +331,25 @@ docker run --rm -it -v $(pwd)/logs:/app/logs videogamebench bash
 
 The Docker image is ready to use out of the box and provides the same functionality as local installation.
 
-## License
+### Troubleshooting Docker on Linux
 
-**Disclaimer**: While all parts of this codebase fall under the MIT license (i.e. free use for both personal and commercial purposes), the **games** themselves do not. You must legally own the games to play them.
+**Permission Issues on Linux Systems:**
+
+On Linux systems (especially gLinux), you might encounter permission errors with the logs directory. The `scripts/run-docker.sh` script automatically detects and fixes these issues, but if you encounter problems, you can:
+
+```bash
+# Option 1: Let the script auto-fix permissions (recommended)
+./scripts/run-docker.sh
+# The script will prompt for sudo access if needed
+
+# Option 2: Manually fix permissions before running
+./scripts/fix-docker-permissions.sh
+
+# Option 3: Manual fix (what the scripts do automatically)
+sudo rm -rf logs && mkdir logs && sudo chown 1000:1000 logs
+./scripts/run-docker.sh
+```
+
+**Why this happens:** Docker containers run with user ID 1000, but your host system might have different ownership on the logs directory, causing permission conflicts when mounting volumes.
+
+**The fix:** The scripts automatically detect Linux systems and ensure the logs directory has the correct ownership (1000:1000) that matches the Docker container's user.

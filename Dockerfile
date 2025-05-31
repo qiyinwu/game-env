@@ -70,7 +70,7 @@ RUN python -m playwright install chromium
 COPY --chown=vgbench:vgbench . .
 
 # Copy and set up entrypoint script
-COPY --chown=vgbench:vgbench docker-entrypoint.sh /app/
+COPY --chown=vgbench:vgbench scripts/docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Create necessary directories

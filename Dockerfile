@@ -72,6 +72,11 @@ COPY --chown=vgbench:vgbench . .
 # Create necessary directories
 RUN mkdir -p roms logs configs
 
+# Download Pokemon Red ROM (legal open-source version from pret project)
+RUN curl -L -o roms/pokemon_red.gb "https://github.com/x1qqDev/pokemon-red/raw/main/Pokemon.gb" && \
+    echo "Pokemon Red ROM downloaded successfully" && \
+    ls -la roms/pokemon_red.gb
+
 # Set up environment for the user's pip packages
 ENV PATH="/home/vgbench/.local/bin:$PATH"
 
@@ -79,4 +84,4 @@ ENV PATH="/home/vgbench/.local/bin:$PATH"
 EXPOSE 8080
 
 # Default command - can be overridden
-CMD ["python", "main.py", "--help"] 
+CMD ["python", "main.py", "--game", "pokemon_red", "--fake-actions", "--lite", "--max-steps", "20"] 

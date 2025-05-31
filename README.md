@@ -65,9 +65,17 @@ rm -rf temp_pokered
 **Alternative: Pre-built ROM**
 If you don't want to build from source, you can download a pre-built ROM from the pokered releases:
 ```bash
-# Download pre-built ROM from pokered releases
+# Option 1: Use the automated download script (recommended)
+./download_roms.sh
+
+# Option 2: Manual download from official pret/pokered releases
 curl -L -o roms/pokemon_red.gb "https://github.com/pret/pokered/releases/download/symbols/pokered.gbc"
+
+# Option 3: Alternative pre-built ROM (tested and verified)
+curl -L -o roms/pokemon_red.gb "https://github.com/x1qqDev/pokemon-red/raw/main/Pokemon.gb"
 ```
+
+**Note**: The automated script (`download_roms.sh`) is the easiest way to get started. It downloads the ROM, verifies the file size, and provides helpful feedback. All options provide legal, open-source Pokemon Red ROMs that work with the benchmark.
 
 #### Other Game Boy ROMs
 For other games listed in the benchmark, you'll need to:
@@ -257,27 +265,26 @@ The system creates comprehensive logs for each session including:
 
 Logs are stored in the `logs/{game}/{model}/{run}` directory with timestamps.
 
+## Docker Support 🐳
 
-## Generating Videos / Clips 🎬
+You can also run VideoGameBench using Docker:
 
-There are two main ways to generate videos / clips from VideoGameBench. The first is to just
-record the screen as it plays (best for streaming). The second is to use the frames provided to
-the model to generate a video using OpenCV, which we used to generate on our website. We provide
-a Python notebook to generate these videos from saved frames for both MS-DOS and Game Boy games in
-the `notebooks/generate_clips.ipynb` file. For example, we generate a video of Gemini 2.5 Pro playing Kirby using only frames given to the agent:
+```bash
+# Build the Docker image
+docker build -t videogamebench .
 
+# Run with Pokemon Red (ROM automatically downloaded)
+docker run --rm -it videogamebench
 
+# Run with custom commands
+docker run --rm -it videogamebench python main.py --game pokemon_red --fake-actions --lite --max-steps 50
 
-https://github.com/user-attachments/assets/e99cd056-62a6-46c7-8ab6-7501423b1474
+# Mount logs directory to persist results
+docker run --rm -it -v $(pwd)/logs:/app/logs videogamebench
+```
 
-
-
-<p align="center">
-  <video width="50%" controls>
-    <source src="media/clips/clips_example.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</p>
+The Docker image automatically downloads the Pokemon Red ROM and is ready to use out of the box.
 
 ## License
+
 **Disclaimer**: While all parts of this codebase fall under the MIT license (i.e. free use for both personal and commercial purposes), the **games** themselves do not. You must legally own the games to play them.

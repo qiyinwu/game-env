@@ -32,14 +32,86 @@ pip install -e .
 playwright install # Install playwright for DOS games
 ```
 
-## Quick Start 🚀
-### Running Game Boy Games (Gameboy Emulator)
-Once you've downloaded and placed the appropriate ROMs into the `roms/` folder (for expected names, see `src/consts.py`). We provide a simple VideoGameAgent for Game Boy games which you can run below:
+## ROM Setup for Game Boy Games 🎮
+
+Before running Game Boy games, you need to obtain ROM files and place them in the `roms/` directory. Here's how to get them legally:
+
+### Step 1: Create the ROMs directory
+```bash
+mkdir -p roms
+```
+
+### Step 2: Download ROM files
+
+#### Pokemon Red (Recommended for testing)
+We recommend using the open-source Pokemon Red ROM from the pokered project, which is a legal reverse-engineered version:
 
 ```bash
-# Run with a Game Boy ROM file
+# Download the pokered repository (open-source Pokemon Red)
+git clone https://github.com/pret/pokered.git temp_pokered
+cd temp_pokered
+
+# Build the ROM (requires make and rgbds)
+# On macOS: brew install rgbds
+# On Ubuntu: sudo apt-get install rgbds
+make
+
+# Copy the generated ROM to your roms directory
+cp pokered.gbc ../roms/pokemon_red.gb
+cd ..
+rm -rf temp_pokered
+```
+
+**Alternative: Pre-built ROM**
+If you don't want to build from source, you can download a pre-built ROM from the pokered releases:
+```bash
+# Download pre-built ROM from pokered releases
+curl -L -o roms/pokemon_red.gb "https://github.com/pret/pokered/releases/download/symbols/pokered.gbc"
+```
+
+#### Other Game Boy ROMs
+For other games listed in the benchmark, you'll need to:
+1. **Own the original cartridge** - This is the only legal way to obtain ROM files
+2. **Use a ROM dumper** - Hardware devices that can extract ROM data from your cartridges
+3. **Place ROM files** in the `roms/` directory with the exact names specified in `src/consts.py`
+
+**Expected ROM filenames** (see `src/consts.py` for the complete list):
+- `pokemon_red.gb` - Pokemon Red
+- `super_mario_land.gb` - Super Mario Land  
+- `kirbys_dream_land.gb` - Kirby's Dream Land
+- `mega_man.gb` - Mega Man: Dr. Wily's Revenge
+- `donkey_kong_land_2.gb` - Donkey Kong Land 2
+- `castlevania_adventure.gb` - Castlevania Adventure
+- `scooby_doo.gb` - Scooby-Doo! Classic Creep Capers
+
+### Step 3: Verify ROM setup
+```bash
+# Check that ROMs are in place
+ls -la roms/
+
+# Test with fake actions (no API key required)
+python main.py --game pokemon_red --fake-actions --lite --max-steps 10
+```
+
+### Legal Notice ⚖️
+**Important**: While this codebase is MIT licensed, the games themselves are not. You must legally own the games to use their ROM files. The pokered project provides a legal alternative for Pokemon Red as it's a complete reverse-engineered implementation.
+
+## Quick Start 🚀
+### Running Game Boy Games (Gameboy Emulator)
+Once you've downloaded and placed the appropriate ROMs into the `roms/` folder (see ROM Setup section above), you can run Game Boy games with various options:
+
+```bash
+# Run with a real LLM model (requires API key)
 python main.py --game pokemon_red --model gpt-4o
 
+# Test with fake random actions (no API key required)
+python main.py --game pokemon_red --fake-actions --lite --max-steps 20
+
+# Run with UI to see agent's actions and thoughts
+python main.py --game pokemon_red --model gpt-4o --enable-ui --lite
+
+# Run Kirby's Dream Land with fake actions
+python main.py --game kirby --fake-actions --lite --max-steps 50 --enable-ui
 ```
 
 ### Running DOS Games (Mouse + Keyboard)
@@ -169,6 +241,7 @@ Common options:
   --model MODEL           The VLM model to use (using LiteLLM syntax). Defaults to gpt-4o
   --enable-ui             Run the game with the agent UI enabled
   --max-steps MAX_STEPS   Maximum number of steps to run. Defaults to 15000
+  --fake-actions          Use random actions instead of calling LLM (Game Boy only, no API key required)
 
 DOS-specific options:
   --website-only           Just open the website without agent interaction

@@ -69,6 +69,10 @@ RUN python -m playwright install chromium
 # Copy the entire project
 COPY --chown=vgbench:vgbench . .
 
+# Copy and set up entrypoint script
+COPY --chown=vgbench:vgbench docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Create necessary directories
 RUN mkdir -p roms logs configs
 
@@ -83,5 +87,8 @@ ENV PATH="/home/vgbench/.local/bin:$PATH"
 # Expose port for any web interfaces (if needed)
 EXPOSE 8080
 
+# Set entrypoint to our custom script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+
 # Default command - can be overridden
-CMD ["python", "main.py", "--game", "pokemon_red", "--fake-actions", "--lite", "--max-steps", "20"] 
+CMD [] 

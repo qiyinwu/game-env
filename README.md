@@ -267,23 +267,69 @@ Logs are stored in the `logs/{game}/{model}/{run}` directory with timestamps.
 
 ## Docker Support 🐳
 
-You can also run VideoGameBench using Docker:
+VideoGameBench provides comprehensive Docker support with automatic log mounting and easy parameter passing.
+
+### Quick Start with Docker
 
 ```bash
 # Build the Docker image
 docker build -t videogamebench .
 
-# Run with Pokemon Red (ROM automatically downloaded)
-docker run --rm -it videogamebench
+# Method 1: Use the convenient runner script (recommended)
+./run-docker.sh
 
-# Run with custom commands
-docker run --rm -it videogamebench python main.py --game pokemon_red --fake-actions --lite --max-steps 50
-
-# Mount logs directory to persist results
+# Method 2: Manual Docker commands
 docker run --rm -it -v $(pwd)/logs:/app/logs videogamebench
 ```
 
-The Docker image automatically downloads the Pokemon Red ROM and is ready to use out of the box.
+### Using the Docker Runner Script
+
+The `run-docker.sh` script automatically handles log mounting and provides easy parameter passing:
+
+```bash
+# Run with default settings (20 steps, fake actions, logs auto-mounted)
+./run-docker.sh
+
+# Run with custom parameters
+./run-docker.sh python main.py --game pokemon_red --fake-actions --max-steps 50
+
+# Run with different game
+./run-docker.sh python main.py --game pokemon_crystal --fake-actions --lite
+
+# Run interactive shell for debugging
+./run-docker.sh bash
+
+# Run with real LLM (requires API key in environment)
+./run-docker.sh python main.py --game pokemon_red --model gpt-4o --max-steps 10
+```
+
+### Manual Docker Commands
+
+If you prefer manual control:
+
+```bash
+# Run with default settings
+docker run --rm -it videogamebench
+
+# Run with custom commands and log mounting
+docker run --rm -it -v $(pwd)/logs:/app/logs videogamebench python main.py --game pokemon_red --fake-actions --lite --max-steps 50
+
+# Run with environment variables for API keys
+docker run --rm -it -e OPENAI_API_KEY=$OPENAI_API_KEY -v $(pwd)/logs:/app/logs videogamebench python main.py --game pokemon_red --model gpt-4o
+
+# Run interactive shell
+docker run --rm -it -v $(pwd)/logs:/app/logs videogamebench bash
+```
+
+### Docker Features
+
+- **🎮 ROM Auto-Download**: Pokemon Red ROM automatically downloaded during build
+- **📁 Smart Log Mounting**: Entrypoint script detects and reports log mounting status
+- **🔧 Parameter Passing**: Full support for all VideoGameBench command-line options
+- **🛡️ Security**: Runs as non-root user for better security
+- **📊 Status Reporting**: Helpful startup messages about ROM and log status
+
+The Docker image is ready to use out of the box and provides the same functionality as local installation.
 
 ## License
 

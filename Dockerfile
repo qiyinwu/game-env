@@ -60,6 +60,13 @@ COPY --chown=vgbench:vgbench setup.py .
 # Install Python dependencies
 RUN pip install --no-cache-dir --user -r requirements.txt
 
+# Install additional persistent storage dependencies
+RUN pip install --no-cache-dir --user \
+    boto3 \
+    google-cloud-storage \
+    azure-storage-blob \
+    pyyaml
+
 # Install the package in development mode
 RUN pip install --no-cache-dir --user -e .
 
@@ -73,8 +80,10 @@ COPY --chown=vgbench:vgbench . .
 COPY --chown=vgbench:vgbench scripts/docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
 
-# Create necessary directories
-RUN mkdir -p roms logs configs
+# Create necessary directories including persistent storage
+RUN mkdir -p roms logs configs \
+    && mkdir -p /persistent_storage/checkpoints \
+    && mkdir -p /persistent_storage/metadata
 
 # Download Pokemon Red ROM (legal open-source version from pret project)
 RUN curl -L -o roms/pokemon_red.gb "https://github.com/x1qqDev/pokemon-red/raw/main/Pokemon.gb" && \
@@ -84,8 +93,18 @@ RUN curl -L -o roms/pokemon_red.gb "https://github.com/x1qqDev/pokemon-red/raw/m
 # Set up environment for the user's pip packages
 ENV PATH="/home/vgbench/.local/bin:$PATH"
 
+# Set persistent storage environment variables
+ENV PYTHONPATH=/app
+ENV STORAGE_TYPE=volume
+ENV STORAGE_PATH=/persistent_storage
+ENV AUTO_RESUME=true
+
 # Expose port for any web interfaces (if needed)
 EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)" || exit 1
 
 # Set entrypoint to our custom script
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

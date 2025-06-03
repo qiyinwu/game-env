@@ -28,8 +28,78 @@ For mouse + keyboard games, we also provide a simple interface for helping the m
 conda create -n videogamebench python=3.10
 conda activate videogamebench
 pip install -r requirements.txt
-pip install -e .  
 playwright install # Install playwright for DOS games
+```
+
+## Code Structure 📁
+
+The codebase is organized into a clean, modular structure:
+
+```
+videogamebench/
+├── src/                          # Main source code
+│   ├── persistence/              # Game state persistence system
+│   │   ├── __init__.py          # Package exports
+│   │   ├── game_state_persistence.py    # Core persistence logic
+│   │   └── docker_persistent_storage.py # Docker & cloud storage
+│   ├── llm/                     # LLM integration
+│   ├── emulators/               # Emulator interfaces
+│   ├── ui/                      # User interface components
+│   └── ...
+├── tests/                       # Unit tests
+│   ├── test_game_state_persistence.py
+│   └── test_docker_persistent_storage.py
+├── examples/                    # Usage examples
+│   └── persistence_example.py   # Persistence system demo
+├── configs/                     # Game configurations
+├── roms/                        # Game ROM files
+└── main.py                      # Main entry point
+```
+
+### Persistence System 💾
+
+The persistence system allows you to save and resume game states across container restarts, supporting multiple storage backends:
+
+**Key Features:**
+- **Game State Checkpoints**: Save complete game state including memory, screen, and metadata
+- **Multiple Storage Backends**: Local volume, AWS S3, Google Cloud Storage, Azure Blob Storage
+- **Auto-save**: Configurable automatic checkpoint intervals
+- **Game Type Support**: GameBoy (PyBoy) and DOS (browser) games
+- **Docker Integration**: Seamless container persistence
+
+**Quick Usage:**
+```python
+from src.persistence import GameStatePersistenceManager, VolumeStorage
+
+# Create persistence manager
+manager = GameStatePersistenceManager(
+    checkpoint_dir="./checkpoints",
+    auto_save_interval=10,  # Save every 10 steps
+    max_checkpoints=5
+)
+
+# Save checkpoint
+checkpoint_id = await manager.save_checkpoint(
+    game_interface=game,
+    episode_id="my_episode",
+    step_number=100,
+    action_history=actions,
+    observation_history=observations,
+    reward_history=rewards
+)
+
+# Load checkpoint
+result = await manager.load_checkpoint(checkpoint_id, game)
+```
+
+**Run Example:**
+```bash
+python examples/persistence_example.py
+```
+
+**Run Tests:**
+```bash
+pytest tests/ -v
 ```
 
 ## ROM Setup for Game Boy Games 🎮
@@ -172,7 +242,7 @@ We've run each of the following models:
 
 We provide a list of scripts run in `all_experiments.sh`.
 
-## Credit to Emulators, Platforms, etc. 
+## Credit to Emulators, Platforms, etc.
 We want to be clear on what we built and what we build on top of! Our benchmark relies heavily on [PyBoy](https://github.com/Baekalfen/PyBoy) for a Gym-based Game Boy emulator, [JS-DOS](https://js-dos.com/overview.html) for MS-DOS games, and [Playwright](https://playwright.dev/) for interacting with browser-based games. We also use [LiteLLM](https://docs.litellm.ai/docs/) for handling models, so you can use run almost any frontier VLM API! You will need to provide your own API keys.
 
 ## VideoGameBench: List of Games 🎮

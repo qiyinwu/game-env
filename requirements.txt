@@ -1,23 +1,36 @@
+# Core game emulation dependencies
 numpy>=1.21.0
-pyboy>=2.5.1       # Game Boy emulator
-pygame>=2.1.0       # For display and input handling
-pillow>=9.0.0      # Image processing
-pydantic>=2.0.0    # Data validation
-pytest>=7.0.0      # Testing
-tqdm>=4.65.0       # Progress bars
-rich>=13.0.0       # Rich terminal output
-gymnasium>=0.29.0   # For RL environment compatibility 
-opencv-python # for screen recording
+pyboy>=2.5.1
+pygame>=2.1.0
+pillow>=9.0.0
+pydantic>=2.0.0
+tqdm>=4.65.0
+rich>=13.0.0
+gymnasium>=0.29.0
+
+# Web automation and DOS games
+playwright>=1.40.0
+opencv-python
+
+# LLM integration
 openai
 anthropic
-ImageHash # for image hashing
-# Core dependencies
-playwright>=1.40.0
 litellm>=1.0.0
-asyncio>=3.4.3
 
-# Optional dependencies
+# Utilities
+ImageHash
 python-dotenv>=1.0.0
 
-# For GUI
+# Persistence system dependencies
+boto3>=1.26.0
+google-cloud-storage>=2.10.0
+azure-storage-blob>=12.17.0
+pyyaml>=6.0
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+moto>=4.2.0
+
+# GUI (optional)
 sv_ttk

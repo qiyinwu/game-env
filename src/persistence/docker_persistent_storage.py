@@ -58,6 +58,9 @@ class PathBasedStorage:
     
     def _parse_storage_path(self, path: str) -> Tuple[str, Path]:
         """Parse storage path and return scheme and local path"""
+        if not path:
+            raise ValueError("Storage path cannot be empty")
+            
         if path.startswith(('/', '~', '.')):
             # Local absolute or relative path
             return "file", Path(path).expanduser().resolve()
@@ -65,8 +68,13 @@ class PathBasedStorage:
         parsed = urlparse(path)
         scheme = parsed.scheme.lower()
         
-        if scheme == "file":
-            return "file", Path(parsed.path)
+        if not scheme or scheme == "file":
+            # No scheme or file scheme - treat as local path
+            if scheme == "file":
+                return "file", Path(parsed.path)
+            else:
+                # No scheme, treat as local path
+                return "file", Path(path).expanduser().resolve()
         elif scheme == "cns":
             # CNS fallback to local temporary directory
             temp_dir = Path(tempfile.gettempdir()) / "cns_fallback" / parsed.path.lstrip('/')

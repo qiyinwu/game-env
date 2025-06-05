@@ -51,6 +51,13 @@ RUN apt-get update && apt-get install -y \
 # Create non-root user for security
 RUN useradd -m -u 1000 vgbench && \
     chown -R vgbench:vgbench /app
+
+# CORRECTED: Create persistent storage directories AS ROOT and give ownership to vgbench
+RUN mkdir -p /persistent_storage/checkpoints \
+    && mkdir -p /persistent_storage/metadata \
+    && chown -R vgbench:vgbench /persistent_storage
+
+# CORRECTED: Switch to the non-root user AFTER all root-level setup is complete
 USER vgbench
 
 # Copy requirements first for better Docker layer caching
@@ -67,14 +74,14 @@ RUN pip install --no-cache-dir --user \
     azure-storage-blob \
     pyyaml
 
-# Install the package in development mode
+# CORRECTED: Copy the entire project context BEFORE installing it
+COPY --chown=vgbench:vgbench . .
+
+# CORRECTED: Install the package in development mode (this will now find the 'src' directory)
 RUN pip install --no-cache-dir --user -e .
 
 # Install Playwright browsers
 RUN python -m playwright install chromium
-
-# Copy the entire project
-COPY --chown=vgbench:vgbench . .
 
 # Copy and set up entrypoint script
 COPY --chown=vgbench:vgbench scripts/docker-entrypoint.sh /app/
@@ -110,4 +117,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Default command - can be overridden
-CMD [] 
+CMD []

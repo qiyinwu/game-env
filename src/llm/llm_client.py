@@ -10,6 +10,10 @@ from typing import Dict, List, Optional, Union, Any, Literal
 import litellm
 import re
 import asyncio
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Setup logging
 logging.basicConfig(
@@ -74,16 +78,35 @@ class LLMClient:
         if not fake_mode:
             # Set the API key based on the model
             if "gpt" in model.lower() or "openai" in model.lower():
-                if api_key is not None and api_key != "":
+                # First check if API key exists in environment, then use passed api_key as fallback
+                env_key = os.getenv("OPENAI_API_KEY")
+                if env_key:
+                    os.environ["OPENAI_API_KEY"] = env_key
+                elif api_key is not None and api_key != "":
                     os.environ["OPENAI_API_KEY"] = api_key
                 self.provider = "openai"
             elif "claude" in model.lower() or "anthropic" in model.lower():
-                if api_key is not None and api_key != "":
+                # First check if API key exists in environment, then use passed api_key as fallback
+                env_key = os.getenv("ANTHROPIC_API_KEY")
+                if env_key:
+                    os.environ["ANTHROPIC_API_KEY"] = env_key
+                elif api_key is not None and api_key != "":
                     os.environ["ANTHROPIC_API_KEY"] = api_key
                 # Ensure model has the correct format for LiteLLM
                 if not model.startswith("anthropic/"):
                     self.model = f"anthropic/{model}"
                 self.provider = "anthropic"
+            elif "gemini" in model.lower() or model.startswith("gemini/"):
+                # First check if API key exists in environment, then use passed api_key as fallback
+                env_key = os.getenv("GEMINI_API_KEY")
+                if env_key:
+                    os.environ["GEMINI_API_KEY"] = env_key
+                elif api_key is not None and api_key != "":
+                    os.environ["GEMINI_API_KEY"] = api_key
+                # Ensure model has the correct format for LiteLLM
+                if not model.startswith("gemini/"):
+                    self.model = f"gemini/{model}"
+                self.provider = "gemini"
             elif self.api_base and "ollama" in self.api_base:
                 # Configure for Ollama
                 self.provider = "ollama"
@@ -91,8 +114,9 @@ class LLMClient:
                     self.model = f"ollama/{model}"
                 litellm.api_base = self.api_base
             else:
-                # For other models, set a generic API key
-                litellm.api_key = api_key
+                # For other models, check environment first, then use passed api_key
+                if api_key is not None and api_key != "":
+                    litellm.api_key = api_key
                 self.provider = "other"
         else:
             self.provider = "fake"

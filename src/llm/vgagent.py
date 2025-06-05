@@ -16,6 +16,7 @@ from src.emulators.dos.browser_controller import BrowserController
 from src.llm.llm_client import LLMClient
 from src.llm.prompts import SYSTEM_PROMPTS, TASK_PROMPTS, GBA_PROMPT, REFLECTION_PROMPT, GBA_REALTIME_PROMPT
 from src.llm.utils import parse_actions_response, convert_to_dict
+import random
 
 # Configure logging
 logging.basicConfig(
@@ -320,12 +321,15 @@ class GameBoyVGAgent(VideoGameBenchAgent):
         logger.info(f"{self.__class__.__name__} initialized. Logging to: {self.log_dir}, fake_mode: {fake_mode}")
 
     
-    def _save_image(self, image: Image.Image) -> Path:
+    def _save_image(self, image: Image.Image, action_step: Optional[int] = None) -> Path:
         """Save the image to the log directory."""
+        # Use action_step if provided, otherwise fall back to step_count
+        step_num = action_step if action_step is not None else self.step_count
+        
         if self.ui:
-            self.ui.take_screenshot(self.monitor_dir, f"screenshot_{self.step_count}.jpg")
+            self.ui.take_screenshot(self.monitor_dir, f"screenshot_{step_num}.jpg")
             
-        image_path = self.image_dir / f"screenshot_{self.step_count}.png"
+        image_path = self.image_dir / f"screenshot_{step_num}.png"
         image.save(image_path)
         return image_path
         
@@ -336,13 +340,14 @@ class GameBoyVGAgent(VideoGameBenchAgent):
         return base64.b64encode(buffered.getvalue()).decode()
 
     def store_observation(self, observation: Dict[str, Any], 
-                          prev_action: Optional[str] = None) -> None:
+                          prev_action: Optional[str] = None,
+                          action_step: Optional[int] = None) -> None:
         """Store the observation in the history."""
         image = observation['screen']
         buttons = observation['buttons']
         
-        # Save image to log directory
-        image_path = self._save_image(image)
+        # Save image to log directory with action_step if provided
+        image_path = self._save_image(image, action_step)
         self.file_logger.info(f"Saved observation image to {image_path}")
         
         # Prepare the image for API
@@ -425,6 +430,10 @@ class GameBoyVGAgent(VideoGameBenchAgent):
         # Update UI state
         self._update_ui_state("")
         
+        # Handle fake mode - generate fake actions without LLM call
+        if self.fake_mode:
+            return self._generate_fake_actions()
+        
         # Prepare and send messages to LLM
         messages = await self._prepare_messages()
         start_time = time.time()
@@ -459,6 +468,37 @@ class GameBoyVGAgent(VideoGameBenchAgent):
             self.file_logger.error(f"Error parsing response: {e}")
             return None
 
+    def _generate_fake_actions(self) -> List[Dict[str, bool]]:
+        """Generate fake random actions for testing purposes."""
+        import random
+        
+        buttons = ["RIGHT", "LEFT", "UP", "DOWN", "A", "B", "START", "SELECT"]
+        
+        # Generate 1-3 random actions to match normal LLM behavior
+        num_actions = random.randint(1, 3)
+        actions = []
+        
+        for _ in range(num_actions):
+            # Create action dictionary with all buttons set to False
+            action = {button: False for button in buttons}
+            
+            # 70% chance of pressing a button, 30% chance of no action
+            if random.random() < 0.7:
+                # Randomly select 1-2 buttons to press simultaneously
+                num_buttons = random.randint(1, 2)
+                selected_buttons = random.sample(buttons, num_buttons)
+                for button in selected_buttons:
+                    action[button] = True
+            
+            actions.append(action)
+        
+        # Log the fake action
+        action_str = ", ".join([btn for action in actions for btn, pressed in action.items() if pressed])
+        if not action_str:
+            action_str = "NONE"
+        self.file_logger.info(f"Generated fake action: {action_str}")
+        
+        return actions
 
 class WebBrowsingVGAgent(VideoGameBenchAgent):
     """

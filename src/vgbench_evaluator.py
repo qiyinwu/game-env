@@ -115,7 +115,7 @@ class GBEvaluator(BaseVGBenchEvaluator):
         try:
             # Get initial observation
             obs = self.game.get_observation()
-            gba_agent.store_observation(obs)
+            gba_agent.store_observation(obs, action_step=0)
 
             # Initialize action list
             actions_to_run = []
@@ -133,8 +133,8 @@ class GBEvaluator(BaseVGBenchEvaluator):
                 else: 
                     obs, _, _, _ = self.game.step(action, self.action_frames)
 
-                # Update observation
-                gba_agent.store_observation(obs)
+                # Update observation with current step number
+                gba_agent.store_observation(obs, action_step=step+1)
                 # Check checkpoint progress
                 if self._check_checkpoint_progress(obs["screen"], gba_agent):
                     print("Task complete! All checkpoints completed.")
@@ -162,7 +162,7 @@ class GBEvaluator(BaseVGBenchEvaluator):
         try:
             # Get initial observation
             obs = self.game.get_observation()
-            gba_agent.store_observation(obs)
+            gba_agent.store_observation(obs, action_step=0)
 
             # Initialize action list and frame counter
             actions_to_run = []
@@ -187,7 +187,7 @@ class GBEvaluator(BaseVGBenchEvaluator):
                 if not actions_to_run:
                     # Make a no_op step and continue if no valid actions
                     obs, _, _, _ = self.game.no_op(self.action_frames)
-                    gba_agent.store_observation(obs)
+                    gba_agent.store_observation(obs, action_step=step+1)
 
                     if self._check_checkpoint_progress(obs["screen"], gba_agent):
                         print("Task complete! All checkpoints completed.")
@@ -200,15 +200,13 @@ class GBEvaluator(BaseVGBenchEvaluator):
                 else:
                     obs, _, _, _ = self.game.no_op(self.action_frames)
                 
-                gba_agent.store_observation(obs)   
+                gba_agent.store_observation(obs, action_step=step+1)   
 
         except KeyboardInterrupt:
             print("\nEvaluation interrupted by user")
         except Exception as e:
             print(f"Error during realtime evaluation: {e}")
         return
-        
-    
 
 class DOSEvaluator(BaseVGBenchEvaluator):
     """Evaluator class that coordinates between DOS emulators and LLMs."""

@@ -36,6 +36,7 @@ class GBAInterface(VideoGameBenchInterface):
         super().__init__()
         self.pyboy = None
         self.render = render
+        self.current_rom_path = None
 
     def load_game(self, rom_path: str, uncapped: bool = False) -> bool:
         """Load a Game Boy ROM."""
@@ -47,6 +48,9 @@ class GBAInterface(VideoGameBenchInterface):
             # Initialize PyBoy with headless mode if not rendering
             self.pyboy = PyBoy(rom_path, window="SDL2" if self.render else "headless")
             self.pyboy.set_emulation_speed(1)
+            
+            # Save the ROM path for potential reset
+            self.current_rom_path = rom_path
             
             # Run a few frames to get past the boot screen
             for _ in range(1200):
@@ -125,12 +129,22 @@ class GBAInterface(VideoGameBenchInterface):
             self.pyboy = None
             
 
-    def reset(self) -> Dict[str, Any]:
-        """Reset the game state and return initial observation."""
+    def reset(self):
+        """Reset the game to initial state"""
         if not self.pyboy:
-            raise RuntimeError("No ROM loaded")
-        self.pyboy.reset()
-        return self.get_observation()
+            raise RuntimeError("Game not loaded")
+        
+        # PyBoy doesn't have a direct reset method, so we reload the game
+        current_rom_path = self.current_rom_path
+        if current_rom_path:
+            # Stop current game
+            self.pyboy.stop()
+            self.pyboy = None
+            
+            # Reload the game
+            self.load_game(current_rom_path)
+        else:
+            raise RuntimeError("Cannot reset: no ROM path available")
 
     def get_observation(self) -> Optional[Dict[str, Any]]:
         """Get initial observation."""

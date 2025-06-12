@@ -15,6 +15,9 @@ from unittest.mock import Mock, AsyncMock, patch
 from PIL import Image
 import io
 
+# Mark all tests in this file as unit tests
+pytestmark = pytest.mark.unit
+
 from src.persistence.game_state_persistence import (
     GameState, CheckpointInfo, GameStatePersistenceManager,
     GameBoyStateSaver, DOSStateSaver, PersistentGameEnvironment

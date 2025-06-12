@@ -258,10 +258,25 @@ class EnhancedPersistenceManager:
             # Get screen data
             screen_data = b""
             if hasattr(game_interface, 'get_screen'):
-                screen_data = game_interface.get_screen()
+                try:
+                    screen_data = game_interface.get_screen()
+                except Exception as e:
+                    logging.warning(f"Failed to capture screen data: {e}, proceeding without screen data")
+                    screen_data = b""  # Default to empty screen data
             
             # Save game state
-            save_state = await saver.save_state(game_interface, metadata)
+            try:
+                save_state = await saver.save_state(game_interface, metadata)
+            except Exception as e:
+                logging.warning(f"Failed to save full game state: {e}, using minimal state")
+                save_state = {}  # Use empty state if saving fails
+            
+            # Get memory snapshot
+            try:
+                memory_snapshot = saver.get_memory_snapshot(game_interface)
+            except Exception as e:
+                logging.warning(f"Failed to get memory snapshot: {e}, using empty memory")
+                memory_snapshot = {}  # Use empty memory if snapshot fails
             
             # Create game state
             game_state = GameState(
@@ -271,7 +286,7 @@ class EnhancedPersistenceManager:
                 step_number=step_number,
                 timestamp=time.time(),
                 screen_data=screen_data,
-                game_memory=saver.get_memory_snapshot(game_interface),
+                game_memory=memory_snapshot,
                 save_state=save_state,
                 action_history=action_history.copy(),
                 observation_history=observation_history.copy(),

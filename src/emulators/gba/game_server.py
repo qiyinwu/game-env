@@ -100,6 +100,10 @@ class GBAGameServer:
         handler = self._create_request_handler()
         socketserver.TCPServer.allow_reuse_address = True
         self.server = socketserver.TCPServer(("", self.port), handler)
+        
+        # Update port to the actual assigned port (important when port=0)
+        self.port = self.server.server_address[1]
+        
         self.is_running = True
         
         # Run server in background thread

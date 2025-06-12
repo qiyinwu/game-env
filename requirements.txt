@@ -17,6 +17,9 @@ openai
 anthropic
 litellm>=1.0.0
 
+# HTTP client for server mode
+requests>=2.25.0
+
 # Utilities
 ImageHash
 python-dotenv>=1.0.0

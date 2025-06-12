@@ -323,6 +323,11 @@ Common options:
 
 DOS-specific options:
   --website-only           Just open the website without agent interaction
+
+GBA-specific options:
+  --server-mode           Run GBA game as HTTP server for external control (Docker-friendly)
+  --server-port PORT      Port for GBA game server (default: 8080)
+  --headless              Run without visual display (recommended for server mode)
 ```
 
 ## Logging 📝
@@ -423,3 +428,34 @@ sudo rm -rf logs && mkdir logs && sudo chown 1000:1000 logs
 **Why this happens:** Docker containers run with user ID 1000, but your host system might have different ownership on the logs directory, causing permission conflicts when mounting volumes.
 
 **The fix:** The scripts automatically detect Linux systems and ensure the logs directory has the correct ownership (1000:1000) that matches the Docker container's user.
+
+### Running GBA Games in Server Mode (Docker-Friendly)
+For deployment scenarios where you want to run the game in a Docker container and control it externally with LLM API calls, you can use server mode:
+
+```bash
+# Start GBA game server (runs in Docker or locally)
+python main.py --emulator gba --game pokemon_red --server-mode --headless --server-port 8080
+
+# In another terminal/script, use the HTTP API to control the game
+# See examples/gba_client_example.py for a complete client implementation
+curl http://localhost:8080/health  # Check server health
+curl http://localhost:8080/screenshots?count=5  # Get recent screenshots
+curl -X POST http://localhost:8080/actions -H "Content-Type: application/json" -d '{"actions": ["A", "DOWN", "A"]}'
+```
+
+**Server Mode API Endpoints:**
+- `GET /health` - Health check
+- `GET /status` - Game status and step count
+- `GET /screenshots?count=N` - Get N recent screenshots (max 20, base64 PNG format)
+- `POST /actions` - Execute multiple actions: `{"actions": ["A", "DOWN", "A"]}`
+- `POST /reset` - Reset game state
+
+**Example Client Usage:**
+```bash
+# Run the example client that demonstrates external LLM control
+python examples/gba_client_example.py
+```
+
+This architecture is perfect for CEO (Code Execution Orchestrator) deployments where Docker containers run the game server and external scripts handle LLM API calls.
+
+### Running DOS Games (Mouse + Keyboard)

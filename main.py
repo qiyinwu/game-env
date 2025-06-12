@@ -7,6 +7,7 @@ import sys
 import webbrowser
 import signal
 import time
+import socket
 from typing import Optional, Dict, Any
 from PIL import Image
 from pathlib import Path
@@ -26,6 +27,26 @@ except ImportError:
 
 # Global variables for clean shutdown
 game_instance = None
+
+def find_free_port(start_port=None):
+    """Find a free port on localhost, starting from start_port if specified"""
+    if start_port:
+        # First try the requested port
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(('', start_port))
+                s.listen(1)
+                return start_port
+            except OSError:
+                # Port is in use, find a free one
+                print(f"Port {start_port} is already in use, finding a free port...")
+    
+    # Find any free port
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('', 0))
+        s.listen(1)
+        port = s.getsockname()[1]
+    return port
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Game Emulation and Evaluation with LLMs")
@@ -87,9 +108,15 @@ def parse_args():
                        help="Maximum tokens in conversation history (GBA only)")
     parser.add_argument("--action-frames", type=int, default=15,
                        help="Number of frames to run each action for (GBA only)")
+    parser.add_argument("--server-mode", action="store_true",
+                       help="Run GBA game as HTTP server for external control (GBA only)")
+    parser.add_argument("--server-port", type=int, default=8080,
+                       help="Port for server mode (default: 8080)")
 
+    # Parse arguments
+    args = parser.parse_args()
 
-    return parser.parse_args()
+    return args
 
 def load_game_config(args):
     """Load game configuration and prompt from the appropriate config folder."""
@@ -195,11 +222,69 @@ async def videogamebench_start():
         from src.run_vgbench_dos import run_dos_emulator
         await run_dos_emulator(args)
     elif args.emulator == "gba":
-        from src.run_vgbench_gb import run_gba_emulator
-        await run_gba_emulator(args)
+        if args.server_mode:
+            await run_gba_server(args)
+        else:
+            from src.run_vgbench_gb import run_gba_emulator
+            await run_gba_emulator(args)
     else:
         print("No emulator specified. Exiting.")
         sys.exit(1)
+
+def run_gba_server(args, test_log_dir=None):
+    """Run GBA game server"""
+    from src.emulators.gba.game_server import GBAGameServer
+    
+    # Try multiple ROM file extensions
+    rom_extensions = ['.gba', '.gb', '.gbc']
+    rom_path = None
+    attempted_paths = []
+    
+    for ext in rom_extensions:
+        potential_path = f"roms/{args.game}{ext}"
+        attempted_paths.append(potential_path)
+        if os.path.exists(potential_path):
+            rom_path = potential_path
+            break
+    
+    if not rom_path:
+        print(f"ROM file not found. Tried: {', '.join(attempted_paths)}")
+        sys.exit(1)
+    
+    # Find a free port, starting with the requested port
+    free_port = find_free_port(args.server_port)
+    if free_port != args.server_port:
+        print(f"Port {args.server_port} was in use, using port {free_port} instead")
+    
+    print(f"Starting GBA server on port {free_port}")
+    print(f"Using ROM: {rom_path}")
+    
+    # Create server with custom log directory for tests or default for production
+    if test_log_dir:
+        server = GBAGameServer(
+            port=free_port,
+            log_dir=test_log_dir,
+            game_name=args.game
+        )
+    else:
+        # Production mode - use existing log structure
+        server = GBAGameServer(
+            port=free_port,
+            game_name=args.game
+        )
+    
+    try:
+        result = server.start(rom_path)
+        print(result)
+        
+        # Keep server running
+        while server.is_running:
+            time.sleep(1)
+            
+    except KeyboardInterrupt:
+        print("\nShutting down server...")
+        server.stop()
+        print("Server stopped")
 
 if __name__ == "__main__":
     # Register signal handlers for clean shutdown

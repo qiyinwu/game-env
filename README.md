@@ -436,26 +436,229 @@ For deployment scenarios where you want to run the game in a Docker container an
 # Start GBA game server (runs in Docker or locally)
 python main.py --emulator gba --game pokemon_red --server-mode --headless --server-port 8080
 
-# In another terminal/script, use the HTTP API to control the game
-# See examples/gba_client_example.py for a complete client implementation
-curl http://localhost:8080/health  # Check server health
-curl http://localhost:8080/screenshots?count=5  # Get recent screenshots
-curl -X POST http://localhost:8080/actions -H "Content-Type: application/json" -d '{"actions": ["A", "DOWN", "A"]}'
+# Server will automatically find a free port if 8080 is in use
+# Output: "Port 8080 was in use, using port 63613 instead"
 ```
 
-**Server Mode API Endpoints:**
-- `GET /health` - Health check
-- `GET /status` - Game status and step count
-- `GET /screenshots?count=N` - Get N recent screenshots (max 20, base64 PNG format)
-- `POST /actions` - Execute multiple actions: `{"actions": ["A", "DOWN", "A"]}`
-- `POST /reset` - Reset game state
+## GBA Server API Reference
 
-**Example Client Usage:**
+The GBA server provides a REST API for external control. All endpoints return JSON responses.
+
+### Health Check
+Check if the server is running and healthy.
 ```bash
-# Run the example client that demonstrates external LLM control
-python examples/gba_client_example.py
+curl http://localhost:8080/health
+```
+**Response:**
+```json
+{
+  "status": "healthy",
+  "server": "gba_game_server"
+}
+```
+
+### Game Status
+Get current game state, step count, and screenshot history size.
+```bash
+curl http://localhost:8080/status
+```
+**Response:**
+```json
+{
+  "state": "playing",
+  "step": 8,
+  "running": true,
+  "screenshot_history_count": 9
+}
+```
+
+### Get Screenshots
+Retrieve recent game screenshots in base64 PNG format.
+```bash
+# Get the latest screenshot
+curl http://localhost:8080/screenshots
+
+# Get the last 5 screenshots  
+curl http://localhost:8080/screenshots?count=5
+
+# Maximum 20 screenshots allowed
+curl http://localhost:8080/screenshots?count=20
+```
+**Response:**
+```json
+{
+  "screenshots": [
+    {
+      "step": 8,
+      "screenshot": "iVBORw0KGgoAAAANSUhEUgAAAKAAAACQCAYAAACPtWC...",
+      "timestamp": 1639584234.123
+    }
+  ],
+  "count": 1,
+  "format": "base64_png"
+}
+```
+
+### Execute Actions
+Send game button presses to control the game. Actions are executed sequentially.
+```bash
+# Execute single action
+curl -X POST http://localhost:8080/actions \
+  -H "Content-Type: application/json" \
+  -d '{"actions": ["A"]}'
+
+# Execute multiple actions in sequence
+curl -X POST http://localhost:8080/actions \
+  -H "Content-Type: application/json" \
+  -d '{"actions": ["A", "DOWN", "RIGHT", "B"]}'
+
+# Available actions: A, B, START, SELECT, UP, DOWN, LEFT, RIGHT
+curl -X POST http://localhost:8080/actions \
+  -H "Content-Type: application/json" \
+  -d '{"actions": ["START", "SELECT", "UP", "UP", "A"]}'
+```
+**Response:**
+```json
+{
+  "success": true,
+  "total_actions": 3,
+  "results": [
+    {
+      "success": true,
+      "action": "A",
+      "step": 9,
+      "action_index": 0
+    },
+    {
+      "success": true,
+      "action": "DOWN",
+      "step": 10,
+      "action_index": 1
+    },
+    {
+      "success": true,
+      "action": "RIGHT",
+      "step": 11,
+      "action_index": 2
+    }
+  ],
+  "final_step": 11
+}
+```
+
+### Reset Game
+Reset the game to its initial state.
+```bash
+curl -X POST http://localhost:8080/reset
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Game reset"
+}
+```
+
+### Error Handling
+The API returns appropriate HTTP status codes and error messages:
+
+```bash
+# Empty actions list
+curl -X POST http://localhost:8080/actions \
+  -H "Content-Type: application/json" \
+  -d '{"actions": []}'
+```
+**Response:**
+```json
+{
+  "error": "Empty actions list"
+}
+```
+
+```bash
+# Invalid endpoint
+curl http://localhost:8080/invalid
+```
+**Response:** `404 Not Found`
+
+## Complete Python Client Example
+
+For complex interactions, use the provided Python client:
+
+```python
+from examples.gba_client_example import GBAGameClient
+
+# Connect to server
+client = GBAGameClient("http://localhost:8080")
+
+# Check server health
+if client.health_check():
+    print("Server is healthy!")
+
+# Get current status
+status = client.get_status()
+print(f"Game state: {status['state']}, Step: {status['step']}")
+
+# Get latest screenshots
+screenshots = client.get_screenshots(count=3)
+for i, screenshot in enumerate(screenshots):
+    # screenshot['image'] is a PIL Image object
+    screenshot['image'].save(f"game_frame_{i}.png")
+
+# Send actions
+result = client.send_actions(["A", "DOWN", "A"])
+print(f"Executed {result['total_actions']} actions successfully")
+
+# Reset game
+client.reset_game()
+```
+
+## LLM Integration Example
+
+This architecture is perfect for AI agents and LLM-powered game playing:
+
+```python
+import requests
+import base64
+from PIL import Image
+from io import BytesIO
+
+def get_game_state(server_url):
+    """Get current game screenshot and status"""
+    # Get status
+    status = requests.get(f"{server_url}/status").json()
+    
+    # Get latest screenshot
+    screenshots = requests.get(f"{server_url}/screenshots?count=1").json()
+    
+    # Decode base64 image
+    img_data = base64.b64decode(screenshots['screenshots'][0]['screenshot'])
+    image = Image.open(BytesIO(img_data))
+    
+    return image, status
+
+def send_actions_to_game(server_url, actions):
+    """Send list of actions to game server"""
+    response = requests.post(
+        f"{server_url}/actions",
+        json={"actions": actions},
+        headers={"Content-Type": "application/json"}
+    )
+    return response.json()
+
+# Example LLM interaction loop
+server_url = "http://localhost:8080"
+for step in range(10):
+    # Get current game state
+    image, status = get_game_state(server_url)
+    
+    # TODO: Send image to LLM and get action decision
+    # actions = call_llm_with_image(image, game_context)
+    actions = ["A", "DOWN"]  # Mock LLM decision
+    
+    # Execute actions
+    result = send_actions_to_game(server_url, actions)
+    print(f"Step {step}: Executed {result['total_actions']} actions")
 ```
 
 This architecture is perfect for CEO (Code Execution Orchestrator) deployments where Docker containers run the game server and external scripts handle LLM API calls.
-
-### Running DOS Games (Mouse + Keyboard)

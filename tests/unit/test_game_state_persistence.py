@@ -24,6 +24,7 @@ from src.persistence.game_state_persistence import (
 )
 
 
+@pytest.mark.unit
 class TestGameState:
     """Test GameState data structure"""
     
@@ -54,6 +55,7 @@ class TestGameState:
         assert game_state.metadata["level"] == 5
 
 
+@pytest.mark.unit
 class TestGameBoyStateSaver:
     """Test GameBoy state saving and loading"""
     
@@ -118,6 +120,7 @@ class TestGameBoyStateSaver:
         assert result == b"mock_memory"
 
 
+@pytest.mark.unit
 class TestDOSStateSaver:
     """Test DOS state saving and loading"""
     
@@ -184,6 +187,7 @@ class TestDOSStateSaver:
         assert result is None
 
 
+@pytest.mark.unit
 class TestGameStatePersistenceManager:
     """Test the main persistence manager"""
     
@@ -425,6 +429,7 @@ class TestGameStatePersistenceManager:
         assert persistence_manager._detect_game_type(unknown_interface) == "unknown"
 
 
+@pytest.mark.unit
 class TestPersistentGameEnvironment:
     """Test the persistent game environment wrapper"""
     
@@ -510,6 +515,7 @@ class TestPersistentGameEnvironment:
         assert "test_episode" in checkpoint_id
 
 
+@pytest.mark.unit
 class TestIntegration:
     """Integration tests for the complete persistence system"""
     

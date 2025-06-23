@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# VideoGameBench Docker Runner Script
+# Game Environment Library Docker Runner Script
 # Automatically handles log mounting and provides easy parameter passing
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,17 +52,17 @@ setup_logs_directory() {
 setup_logs_directory
 
 echo ""
-echo "🎮 VideoGameBench Docker Runner"
+echo "🎮 Game Environment Library Docker Runner"
 echo "==============================="
 echo "📁 Logs will be saved to: $LOGS_DIR"
 echo ""
 
-# Default Docker run command with log mounting
-DOCKER_CMD="docker run --rm -it -v \"$LOGS_DIR:/app/logs\" videogamebench"
+# Change to project root directory
+cd "$(dirname "$SCRIPT_DIR")"
 
 # If no arguments provided, show usage
 if [ $# -eq 0 ]; then
-    echo "🎮 VideoGameBench Docker Runner"
+    echo "🎮 Game Environment Library Docker Runner"
     echo "Usage examples:"
     echo "   ./scripts/run-docker.sh"
     echo "   ./scripts/run-docker.sh python main.py --game pokemon_red --fake-actions --max-steps 50"
@@ -70,8 +70,8 @@ if [ $# -eq 0 ]; then
     echo "   ./scripts/run-docker.sh bash"
     echo ""
     echo "🚀 Running with default settings..."
-    eval $DOCKER_CMD
+    docker compose run --rm game-env
 else
     echo "🚀 Running with custom command: $@"
-    eval "$DOCKER_CMD $@"
+    docker compose run --rm game-env "$@"
 fi 

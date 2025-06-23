@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# VideoGameBench Test Log Cleanup Script
+# Game Environment Library Test Log Cleanup Script
 # Safely removes test logs without affecting production logs
 
-echo "🧹 VideoGameBench Test Log Cleanup"
-echo "=================================="
+echo "🧹 Game Environment Library Test Log Cleanup"
+echo "==========================================="
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"

@@ -1,11 +1,10 @@
-version: '3.8'
-
 services:
-  videogamebench:
+  # Game environment service
+  game-env:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: vgbench
+    container_name: game-env
     
     # Environment variables
     environment:
@@ -14,12 +13,10 @@ services:
       
     # Volume mounts
     volumes:
-      # Mount ROMs directory (create this on host)
+      # Mount source code for development
+      - .:/app
+      # Mount ROMs directory
       - ./roms:/app/roms:ro
-      # Mount logs directory for persistent logging
-      - ./logs:/app/logs
-      # Mount configs for customization
-      - ./configs:/app/configs:ro
       # For X11 forwarding (GUI support)
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       
@@ -35,36 +32,5 @@ services:
     stdin_open: true
     tty: true
     
-    # Default command (can be overridden)
-    command: ["python", "main.py", "--help"]
-
-  # Development service with source code mounted
-  videogamebench-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: vgbench-dev
-    
-    environment:
-      - PYTHONUNBUFFERED=1
-      - DISPLAY=${DISPLAY:-:0}
-      
-    volumes:
-      # Mount source code for development
-      - .:/app
-      # Mount ROMs directory
-      - ./roms:/app/roms:ro
-      # For X11 forwarding
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      
-    ports:
-      - "8080:8080"
-      
-    security_opt:
-      - seccomp:unconfined
-      
-    stdin_open: true
-    tty: true
-    
-    # Override entrypoint for development
-    entrypoint: ["/bin/bash"] 
+    # Default command - can run server mode or interactive
+    command: ["python", "main.py", "--help"] 

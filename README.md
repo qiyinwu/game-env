@@ -27,6 +27,21 @@ pip install -r requirements.txt
 playwright install  # For DOS games
 ```
 
+### Environment Variables
+
+Set up API keys for LLM providers:
+
+```bash
+# OpenAI
+export OPENAI_API_KEY="your-openai-key"
+
+# Anthropic Claude
+export ANTHROPIC_API_KEY="your-anthropic-key"
+
+# Google Gemini
+export GOOGLE_API_KEY="your-google-key"
+```
+
 ### Basic Usage
 
 ```bash
@@ -41,6 +56,33 @@ python main.py --game doom --model gpt-4o --lite
 
 # With UI
 python main.py --game pokemon_red --fake-actions --enable-ui --lite
+```
+
+## Complete Example 🎯
+
+Here's a full end-to-end example of running Pokemon Red with Docker:
+
+```bash
+# 1. Set up environment
+export OPENAI_API_KEY="your-actual-api-key"
+
+# 2. Build Docker image
+docker compose build
+
+# 3. Test with fake actions first
+docker compose run --rm game-env python main.py --game pokemon_red --fake-actions --lite --max-steps 5
+
+# 4. Run server mode in background
+docker compose run --rm -p 8080:8080 game-env python main.py --emulator gba --game pokemon_red --server-mode --headless --server-port 8080 &
+
+# 5. Test the API (in another terminal)
+curl http://localhost:8080/health
+curl http://localhost:8080/status
+curl -X POST http://localhost:8080/actions -H "Content-Type: application/json" -d '{"actions": ["A", "START"]}'
+curl http://localhost:8080/screenshots
+
+# 6. Run with real LLM
+docker compose run --rm -e OPENAI_API_KEY="$OPENAI_API_KEY" game-env python main.py --game pokemon_red --model gpt-4o --lite --max-steps 10
 ```
 
 ## Game State Persistence 💾
@@ -79,24 +121,47 @@ result = await manager.load_checkpoint(checkpoint_id, game)
 
 ## Docker Support 🐳
 
-### Quick Start
-```bash
-# Build and run
-docker build -t game-env .
-./scripts/run-docker.sh
+### Using Docker Compose (Recommended)
 
-# With custom parameters
-./scripts/run-docker.sh python main.py --game pokemon_red --fake-actions --max-steps 50
+```bash
+# Build the image
+docker compose build
+
+# Run with help
+docker compose run --rm game-env
+
+# Test with fake actions
+docker compose run --rm game-env python main.py --game pokemon_red --fake-actions --lite --max-steps 10
+
+# Run with real LLM (set API key first)
+docker compose run --rm -e OPENAI_API_KEY="your-key" game-env python main.py --game pokemon_red --model gpt-4o --lite --max-steps 20
+
+# Interactive development mode
+docker compose run --rm game-env bash
 ```
 
 ### Server Mode
+
 ```bash
 # Start game server
+docker compose run --rm -p 8080:8080 game-env python main.py --emulator gba --game pokemon_red --server-mode --headless --server-port 8080
+
+# Or using native Python
 python main.py --emulator gba --game pokemon_red --server-mode --headless --server-port 8080
 
 # Control via REST API
 curl -X POST http://localhost:8080/actions -H "Content-Type: application/json" -d '{"actions": ["A", "DOWN", "RIGHT"]}'
 ```
+
+### Alternative: Direct Docker Build
+
+```bash
+# Build and run with scripts
+docker build -t game-env .
+./scripts/run-docker.sh python main.py --game pokemon_red --fake-actions --max-steps 50
+```
+
+> **Note**: You may see warnings like "Deprecated use of headless" from PyBoy and "Read-only file system" errors. These are normal and don't affect functionality - the ROM directory is intentionally mounted read-only for security.
 
 ## ROM Setup 🎮
 
@@ -122,24 +187,48 @@ DOS games are loaded automatically via JS-DOS - no ROM files needed.
 **Health Check**
 ```bash
 curl http://localhost:8080/health
+# Response: {"status": "healthy", "server": "gba_game_server"}
+```
+
+**Game Status**
+```bash
+curl http://localhost:8080/status
+# Response: {"state": "playing", "step": 5, "running": true, "screenshot_history_count": 6}
 ```
 
 **Get Screenshots**
 ```bash
+# Get latest screenshot
+curl http://localhost:8080/screenshots
+
+# Get multiple recent screenshots
 curl http://localhost:8080/screenshots?count=5
+# Response: {"screenshots": [...], "count": 5, "current_step": 10, "format": "base64_png"}
 ```
 
 **Execute Actions**
 ```bash
+# Single action
 curl -X POST http://localhost:8080/actions \
   -H "Content-Type: application/json" \
-  -d '{"actions": ["A", "B", "START"]}'
+  -d '{"actions": ["A"]}'
+
+# Multiple actions
+curl -X POST http://localhost:8080/actions \
+  -H "Content-Type: application/json" \
+  -d '{"actions": ["A", "B", "START", "DOWN", "RIGHT"]}'
+
+# Response: {"success": true, "total_actions": 3, "results": [...], "final_step": 8}
 ```
 
 **Reset Game**
 ```bash
 curl -X POST http://localhost:8080/reset
+# Response: {"success": true, "message": "Game reset"}
 ```
+
+**Available Game Actions:**
+- Game Boy: `A`, `B`, `START`, `SELECT`, `UP`, `DOWN`, `LEFT`, `RIGHT`
 
 ### Python Client
 ```python

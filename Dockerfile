@@ -83,10 +83,6 @@ RUN pip install --no-cache-dir --user -e .
 # Install Playwright browsers
 RUN python -m playwright install chromium
 
-# Copy and set up entrypoint script
-COPY --chown=vgbench:vgbench scripts/docker-entrypoint.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh
-
 # Create necessary directories including persistent storage
 RUN mkdir -p roms logs configs \
     && mkdir -p /persistent_storage/checkpoints \
@@ -113,8 +109,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import sys; sys.exit(0)" || exit 1
 
-# Set entrypoint to our custom script
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
-
 # Default command - can be overridden
-CMD []
+CMD ["python", "main.py", "--help"]

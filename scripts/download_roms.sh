@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# VideoGameBench ROM Download Script
+# Game Environment Library ROM Download Script
 # This script downloads legal, open-source ROM files for testing
 
-echo "🎮 VideoGameBench ROM Download Script"
-echo "======================================"
+echo "🎮 Game Environment Library ROM Download Script"
+echo "=============================================="
 
 # Get the project root directory (one level up from scripts/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# VideoGameBench Docker Permissions Fix Script
+# Game Environment Library Docker Permissions Fix Script
 # Fixes common permission issues on Linux systems
 
-echo "🔧 VideoGameBench Docker Permissions Fix"
-echo "========================================"
+echo "🔧 Game Environment Library Docker Permissions Fix"
+echo "==============================================="
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOGS_DIR="$(dirname "$SCRIPT_DIR")/logs"  # Go up one level from scripts/ to project root

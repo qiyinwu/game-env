@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# GBA Game Server Test Runner
+# Game Environment Library Test Runner
 # This script sets up a virtual environment and runs all tests
 
 set -e  # Exit on any error
 
-echo "🧪 GBA Game Server Test Runner"
-echo "=============================="
+echo "🧪 Game Environment Library Test Runner"
+echo "===================================="
 
 # Check if we're in the right directory
 if [ ! -f "main.py" ]; then
@@ -40,7 +40,6 @@ pip install pytest pytest-asyncio
 echo "✅ Running syntax checks..."
 python -m py_compile src/emulators/gba/game_server.py
 python -m py_compile examples/gba_client_example.py
-python -m py_compile tests/test_gba_server.py
 
 # Run the tests
 echo "🚀 Running tests..."
@@ -48,27 +47,27 @@ echo ""
 
 # Run unit tests
 echo "📋 Running unit tests..."
-python -m pytest tests/test_gba_server.py::TestGBAGameServer -v
+python -m pytest tests/unit/ -v
 
 echo ""
 
-# Run integration tests (these require more setup)
+# Run integration tests
 echo "🔗 Running integration tests..."
-python -m pytest tests/test_gba_server.py::TestGBAClientIntegration -v
+python -m pytest tests/integration/ -v
 
 echo ""
 
-# Run async tests
-echo "⚡ Running async tests..."
-python -m pytest tests/test_gba_server.py::test_server_mode_main_function -v
+# Run E2E tests
+echo "🌐 Running E2E tests..."
+python -m pytest tests/e2e/ -v
 
 echo ""
 echo "✅ All tests completed!"
 echo ""
 echo "💡 To run tests manually:"
 echo "   source venv/bin/activate"
-echo "   python -m pytest tests/test_gba_server.py -v"
+echo "   python -m pytest tests/ -v"
 echo ""
 echo "🐳 To test with Docker:"
-echo "   docker build -t gba-game-server ."
-echo "   docker run -p 8080:8080 gba-game-server --server-mode --headless" 
+echo "   docker build -t game-env ."
+echo "   docker run -p 8080:8080 game-env --server-mode --headless" 

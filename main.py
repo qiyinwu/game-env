@@ -112,6 +112,8 @@ def parse_args():
                        help="Run GBA game as HTTP server for external control (GBA only)")
     parser.add_argument("--server-port", type=int, default=8080,
                        help="Port for server mode (default: 8080)")
+    parser.add_argument("--log-dir", type=str, 
+                       help="Directory to store logs and screenshots (GBA only)")
 
     # Parse arguments
     args = parser.parse_args()
@@ -264,6 +266,13 @@ def run_gba_server(args, test_log_dir=None):
         server = GBAGameServer(
             port=free_port,
             log_dir=test_log_dir,
+            game_name=args.game
+        )
+    elif hasattr(args, 'log_dir') and args.log_dir:
+        # Use custom log directory from command line
+        server = GBAGameServer(
+            port=free_port,
+            log_dir=args.log_dir,
             game_name=args.game
         )
     else:

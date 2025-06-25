@@ -21,7 +21,7 @@ litellm>=1.0.0
 requests>=2.25.0
 
 # Utilities
-ImageHash
+imagehash
 python-dotenv>=1.0.0
 
 # Persistence system dependencies

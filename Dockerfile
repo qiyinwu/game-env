@@ -45,6 +45,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     unzip \
+    # Add iproute2 for 'ss' command
+    iproute2 \
     # Clean up
     && rm -rf /var/lib/apt/lists/*
 
@@ -52,43 +54,45 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 vgbench && \
     chown -R vgbench:vgbench /app
 
-# CORRECTED: Create persistent storage directories AS ROOT and give ownership to vgbench
+# Create persistent storage directories AS ROOT and give ownership to vgbench
 RUN mkdir -p /persistent_storage/checkpoints \
     && mkdir -p /persistent_storage/metadata \
     && chown -R vgbench:vgbench /persistent_storage
 
-# CORRECTED: Switch to the non-root user AFTER all root-level setup is complete
-USER vgbench
-
-# Copy requirements first for better Docker layer caching
+# Copy requirements and setup.py first for better Docker layer caching
 COPY --chown=vgbench:vgbench requirements.txt .
 COPY --chown=vgbench:vgbench setup.py .
 
-# Install Python dependencies
+# Switch to the non-root user for pip installations
+USER vgbench
+
+# Install Python dependencies from requirements.txt
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Install additional persistent storage dependencies
+# Install additional cloud storage dependencies
 RUN pip install --no-cache-dir --user \
     boto3 \
     google-cloud-storage \
     azure-storage-blob \
     pyyaml
 
-# CORRECTED: Copy the entire project context BEFORE installing it
+# Copy the entire project
 COPY --chown=vgbench:vgbench . .
 
-# CORRECTED: Install the package in development mode (this will now find the 'src' directory)
+# Install the project in editable mode (now that source code is copied)
 RUN pip install --no-cache-dir --user -e .
+
+# VERIFY yaml installation
+RUN python -c "import yaml; print('YAML module is installed and importable!')" || \
+    (echo 'ERROR: YAML module is NOT importable after installation!' && exit 1)
 
 # Install Playwright browsers
 RUN python -m playwright install chromium
 
-# Create necessary directories including persistent storage
-RUN mkdir -p roms logs configs \
-    && mkdir -p /persistent_storage/checkpoints \
-    && mkdir -p /persistent_storage/metadata
+# Create necessary directories (user can create these in /app)
+RUN mkdir -p roms logs configs
 
-# Download Pokemon Red ROM (legal open-source version from pret project)
+# Download Pokemon Red ROM (legal open-source version)
 RUN curl -L -o roms/pokemon_red.gb "https://github.com/x1qqDev/pokemon-red/raw/main/Pokemon.gb" && \
     echo "Pokemon Red ROM downloaded successfully" && \
     ls -la roms/pokemon_red.gb
@@ -102,7 +106,7 @@ ENV STORAGE_TYPE=volume
 ENV STORAGE_PATH=/persistent_storage
 ENV AUTO_RESUME=true
 
-# Expose port for any web interfaces (if needed)
+# Expose port for any web interfaces
 EXPOSE 8080
 
 # Health check
